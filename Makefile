@@ -1,4 +1,4 @@
-INDIR		= .
+INDIR		= asm
 OUTDIR		= build
 MKRDIR		= iso
 TARGET		= plain-plain-i386
@@ -49,7 +49,7 @@ link:
 		-m $(LDEMULMF) \
 		-o $(OUTDIR)/$(TARGET) \
 		--oformat $(LDFORMAT) \
-		--script $(INDIR)/linker.ld \
+		--script linker.ld \
 		$(OUTDIR)/start.o \
 		>> $(STATFILE)_ld; \
 	then \
@@ -65,6 +65,7 @@ assemble:
 	if nasm \
 		-f $(ASFORMAT) \
 		-o $(OUTDIR)/start.o \
+		-I $(INDIR)/ \
 		$(INDIR)/start.s \
 		>> $(STATFILE)_as; \
 	then \
