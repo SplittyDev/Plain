@@ -2,10 +2,14 @@ global start
 %include "multiboot2.s"
 
 section .rodata
-console:
-    .color: db 0x0F
 msg:
     .welcome: db 'Welcome to plain!',10,'test...',0
+
+section .data
+console:
+    .x: db 0x00 ; x
+    .y: db 0x00 ; y
+    .c: db 0x07 ; color
 
 section .text
 bits 32
@@ -18,69 +22,57 @@ start:
 kmain:
     ; Print welcome message
     mov eax, msg.welcome
-    mov ebx, [console.color]
-    mov ecx, 0 ; y
-    mov edx, 0 ; x
     call vga.prints
     ; Halt
     hlt
 
 vga:
 ; VGA routine to print a single char.
+; Preserves registers.
 ;
 ; Register - Argument
 ; -------- - ---------
 ; eax      - char
-; ebx      - color    
-; ecx      - y        
-; edx      - x      
 ; -------- - ---------
 .printc:
-    cmp al, 10
-    je .printc_case_nl
-    cmp al, 13
-    je .printc_case_cr
-    jmp .printc_main
-.printc_case_nl:
-    inc ecx
-    jmp .printc_case_cr
-.printc_case_cr:
-    mov edx, 0
-    ret
-.printc_main:
-    push ebx
-    push ecx
-    ; attr = chr | (color << 8)
-    shl bx, 8           ; color <<= 8
-    or bx, ax           ; color |= chr
-    ; ptr = 0xb8000 + y * 80 + x
-    imul ecx, 80        ; y *= 80
-    add ecx, edx        ; y += x
-    shl ecx, 1          ; y *= 2
-    add ecx, 0xb8000    ; y += 0xb8000
-    mov [ecx], bx       ; *y = color
-    inc edx             ; x++
-    pop ecx
-    pop ebx
-    ret
+    cmp al, 10                      ; test if char is '\n'
+    je .printc_case_nl              ; ---> jump to handler
+    cmp al, 13                      ; test if char is '\r'
+    je .printc_case_cr              ; ---> jump to handler
+    jmp .printc_default             ; jump to the print routine
+.printc_case_nl:                    ; case '\n':
+    inc byte [console.y]            ; y = y + 1
+.printc_case_cr:                    ; case '\r':
+    mov byte [console.x], 0x00      ; x = 0
+    ret                             ; return
+.printc_default:                    ; default:
+    push ebx                        ; save ebx
+    push ecx                        ; save ecx
+    mov cl, [console.y]             ; off = y
+    imul cx, 80                     ; off = ptr * 80
+    add cl, [console.x]             ; off = ptr + x
+    mov bl, [console.c]             ; load color
+    mov [0xb8000 + 0 + ecx * 2], al ; *(0xB8000 + 0 + off * 2) = char
+    mov [0xb8000 + 1 + ecx * 2], bl ; *(0xB8000 + 1 + off * 2) = color
+    inc byte [console.x]            ; x = x + 1
+    pop ecx                         ; restore ecx
+    pop ebx                         ; restore ebx
+    ret                             ; return
 ; VGA routine to print a null-terminated string.
 ;
 ; Register - Argument
 ; -------- - ---------
 ; eax      - str
-; ebx      - color
-; ecx      - y
-; edx      - x
 ; -------- - ---------
 .prints:
     push eax
 .prints_loop:
-    cmp byte [eax], 0   ; if *str == 0
+    cmp byte [eax], 0   ; if *str == '\0'
     je .prints_next     ; break
-    push eax            ; push str
-    mov al, [eax]       ; chr = str[i]
-    call .printc        ; print
-    pop eax             ; pop str
+    push eax            ; save str
+    mov al, [eax]       ; chr = *str
+    call .printc        ; print chr
+    pop eax             ; restore str
     inc eax             ; str++
     jmp .prints_loop    ; continue
 .prints_next:
