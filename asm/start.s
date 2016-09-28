@@ -1,11 +1,11 @@
 global start
 %include "multiboot2.s"
 
-section .data
+section .rodata
 console:
     .color: db 0x0F
 msg:
-    .welcome: db 'Welcome to plain!',0
+    .welcome: db 'Welcome to plain!',10,'test...',0
 
 section .text
 bits 32
@@ -26,8 +26,7 @@ kmain:
     hlt
 
 vga:
-; VGA printing routine to print a single char.
-; Preserves all registers.
+; VGA routine to print a single char.
 ;
 ; Register - Argument
 ; -------- - ---------
@@ -37,23 +36,34 @@ vga:
 ; edx      - x      
 ; -------- - ---------
 .printc:
+    cmp al, 10
+    je .printc_case_nl
+    cmp al, 13
+    je .printc_case_cr
+    jmp .printc_main
+.printc_case_nl:
+    inc ecx
+    jmp .printc_case_cr
+.printc_case_cr:
+    mov edx, 0
+    ret
+.printc_main:
     push ebx
     push ecx
     ; attr = chr | (color << 8)
-    shl ebx, 8           ; color <<= 8
-    or ebx, eax           ; color |= chr
+    shl bx, 8           ; color <<= 8
+    or bx, ax           ; color |= chr
     ; ptr = 0xb8000 + y * 80 + x
-    imul ecx, 40        ; y *= 40
+    imul ecx, 80        ; y *= 80
     add ecx, edx        ; y += x
     shl ecx, 1          ; y *= 2
     add ecx, 0xb8000    ; y += 0xb8000
     mov [ecx], bx       ; *y = color
-    inc dl              ; increment x
+    inc edx             ; x++
     pop ecx
     pop ebx
     ret
-; VGA priting routine to print a null-terminated string.
-; Preserves all registers.
+; VGA routine to print a null-terminated string.
 ;
 ; Register - Argument
 ; -------- - ---------
