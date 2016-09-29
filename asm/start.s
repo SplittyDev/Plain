@@ -4,7 +4,8 @@ global start
 
 section .rodata
 ctext:
-    .welcome: db 'Welcome to plain!',10,0
+    .welcome: db 'Welcome to plain!',0x00
+    .prompt: db 'recovery$',0x20,0x00
 
 section .text
 bits 32
@@ -17,7 +18,12 @@ start:
 kmain:
     ; Print welcome message
     mov eax, ctext.welcome
+    call textmode.printsln
+
+    ; Print prompt
+    mov eax, ctext.prompt
     call textmode.prints
+
     ; Halt
     hlt
 
