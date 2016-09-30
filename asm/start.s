@@ -11,6 +11,7 @@ msg:
     .igdt:          db 'Initializing GDT',0x20,0x00
     .cpuinfo:       db '[CPU Information]',0x0A,0x00
     .vendor:        db 'Vendor:',0x20,0x00
+    .brand:         db 'Brand:',0x20,0x00
     .welcome:       db 'Welcome to plain!',0x0A,0x00
     .prompt:        db 'recovery$',0x20,0x00
 err:
@@ -82,6 +83,10 @@ kmain:
     mov eax, msg.vendor
     call textmode.prints
     call cpuid_helper.print_vendor_string
+    call textmode.println
+    mov eax, msg.brand
+    call textmode.prints
+    call cpuid_helper.print_brand_string
     call textmode.println
 .end:
     ret
