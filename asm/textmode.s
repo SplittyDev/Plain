@@ -1,13 +1,84 @@
 section .data
-console:
+textmode_data:
     .x: dd 0x00
     .y: dd 0x00
     .c: db 0x07
     .w: db 0x50
     .h: db 0x19
 
+; Colors
+%define COLOR_BLACK           0x0
+%define COLOR_BLUE            0x1
+%define COLOR_GREEN           0x2
+%define COLOR_CYAN            0x3
+%define COLOR_RED             0x4
+%define COLOR_MAGENTA         0x5
+%define COLOR_BROWN           0x6
+%define COLOR_LIGHTGRAY       0x7
+%define COLOR_DARKGRAY        BRIGHT(COLOR_BLACK)
+%define COLOR_LIGHTBLUE       BRIGHT(COLOR_BLUE)
+%define COLOR_LIGHTGREEN      BRIGHT(COLOR_GREEN)
+%define COLOR_LIGHTCYAN       BRIGHT(COLOR_CYAN)
+%define COLOR_LIGHTRED        BRIGHT(COLOR_RED)
+%define COLOR_LIGHTMAGENTA    BRIGHT(COLOR_MAGENTA)
+%define COLOR_YELLOW          BRIGHT(COLOR_BROWN)
+%define COLOR_WHITE           BRIGHT(COLOR_LIGHTGRAY)
+
+; Default colors
+%define COLOR_DEFAULT_FC      COLOR_LIGHTGRAY
+%define COLOR_DEFAULT_BC      COLOR_BLACK
+%define COLOR_DEFAULT         MAKECOLOR(COLOR_DEFAULT_FC, COLOR_DEFAULT_BC)
+
+; Custom colors
+%define COLOR_CUSTOM_OK       MAKECOLOR(COLOR_GREEN, COLOR_DEFAULT_BC)
+%define COLOR_CUSTOM_FAIL     MAKECOLOR(COLOR_RED, COLOR_DEFAULT_BC)
+
+; Helper macros
+%define BRIGHT(c) (0x8 + c)
+%define MAKECOLOR(fc, bc) ((fc & 0x0F) | (bc << 4))
+
 section .text
 textmode:
+
+;
+; VGA routine to set the text color.
+; Registers are preserved.
+;
+; AL: Foreground
+; BL: Background
+;
+; Calculating the color attribute:
+; color = (fc & 0x0F) | (bc << 4)
+;
+.set_color:
+    push ax
+    and al, 0x0F
+    mov ah, bl
+    shl ah, 4
+    or al, ah
+    call .set_color_ex
+    pop ax
+    ret
+
+;
+; VGA routine to set the text color.
+; Use the MAKECOLOR macro to create the attribute.
+; Registers are preserved.
+;
+; AL: Attribute
+;
+.set_color_ex:
+    mov [textmode_data.c], al
+    ret
+
+;
+; VGA routine to reset the text color.
+; Uses the color specified in the DEFAULT macro.
+; Registers are preserved.
+;
+.reset_color:
+    mov byte [textmode_data.c], COLOR_DEFAULT
+    ret
 
 ;
 ; VGA routine to update the cursor position.
@@ -76,16 +147,16 @@ textmode:
     je .printc_handle_cr
     push ecx
     push ebx
-    mov ecx, [console.y]
+    mov ecx, [textmode_data.y]
     imul ecx, 80
-    add ecx, [console.x]
-    mov bl, [console.c]
+    add ecx, [textmode_data.x]
+    mov bl, [textmode_data.c]
     mov [0xb8000 + 0 + ecx * 2], al ; *(0xB8000 + 0 + off * 2) = char
     mov [0xb8000 + 1 + ecx * 2], bl ; *(0xB8000 + 1 + off * 2) = color
     pop ebx
     inc ecx
-    inc byte [console.x]
-    cmp byte [console.x], 80
+    inc byte [textmode_data.x]
+    cmp byte [textmode_data.x], 80
     jl .printc_update_cursor
     call .printc_handle_lf
 .printc_update_cursor:
@@ -93,9 +164,9 @@ textmode:
     pop ecx
     ret
 .printc_handle_lf:
-    inc dword [console.y]
+    inc dword [textmode_data.y]
 .printc_handle_cr:
-    mov dword [console.x], 0
+    mov dword [textmode_data.x], 0
     ret
 
 ;
