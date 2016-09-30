@@ -240,6 +240,17 @@ textmode:
     ret
 
 ;
+; VGA routine to print a line feed character.
+; Registers are preserved.
+;
+.println:
+    push ax
+    mov al, 0x0A
+    call .printc
+    pop ax
+    ret
+
+;
 ; VGA routine to print a null-terminated string,
 ; followed by a line-feed (0x0A) character.
 ; Registers are preserved.
@@ -248,8 +259,5 @@ textmode:
 ;
 .printsln:
     call .prints
-    push eax
-    mov al, 0x0A
-    call .printc
-    pop eax
+    call .println
     ret
