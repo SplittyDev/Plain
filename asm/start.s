@@ -51,8 +51,8 @@ kearly:
 kmain:
     mov eax, msg.welcome
     call textmode.printsln
-    mov eax, msg.prompt
-    call textmode.prints
+    ;mov eax, msg.prompt
+    ;call textmode.prints
     ret
 
 section .bss

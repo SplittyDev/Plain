@@ -1,10 +1,11 @@
 section .data
 textmode_data:
-    .x: dd 0x00
-    .y: dd 0x00
-    .c: db 0x07
-    .w: db 0x50
-    .h: db 0x19
+    .x: dd 0x00 ; x
+    .y: dd 0x00 ; y
+    .c: db 0x07 ; color
+    .w: db 0x50 ; width
+    .h: db 0x19 ; height
+    .z: db 0x01 ; cursor
 
 ; Colors
 %define COLOR_BLACK           0x0
@@ -90,6 +91,8 @@ textmode:
 ; cx = (y * 80 + x) & 0xFF
 ;
 .update_cursor:
+    cmp byte [textmode_data.z], 0x00
+    je .update_cursor_end
     push ax
     push dx
     mov al, 0x0E
@@ -109,6 +112,19 @@ textmode:
     out dx, al
     pop dx
     pop ax
+.update_cursor_end:
+    ret
+
+;
+; VGA routine to update the cursor position.
+; Calculates the correct cursor position and updates it.
+; Registers are preserved.
+;
+.update_cursor_ex:
+    push ecx
+    call .get_cursor_location
+    call .update_cursor
+    pop ecx
     ret
 
 ;
@@ -118,20 +134,57 @@ textmode:
 .disable_cursor:
     push ax
     push dx
-    mov al, 0x0F
+    mov al, 0x0A
     mov dx, 0x03D4
     out dx, al
-    mov al, 0xFF 
     mov dx, 0x03D5
-    out dx, al
-    mov al, 0x0E
+    in al, dx
+    or al, 0x20
+    push ax
+    mov al, 0x0A
     mov dx, 0x03D4
     out dx, al
-    mov al, 0xFF
     mov dx, 0x03D5
+    pop ax
     out dx, al
     pop dx
     pop ax
+    mov byte [textmode_data.z], 0x00
+    ret
+
+;
+; VGA routine to enable the cursor.
+; Registers are preserved.
+;
+.enable_cursor:
+    push ax
+    push dx
+    mov al, 0x0A
+    mov dx, 0x03D4
+    out dx, al
+    mov dx, 0x03D5
+    in al, dx
+    and al, ~0x20
+    push ax
+    mov al, 0x0A
+    mov dx, 0x03D4
+    out dx, al
+    mov dx, 0x03D5
+    pop ax
+    out dx, al
+    pop dx
+    pop ax
+    mov byte [textmode_data.z], 0x01
+    ret
+
+;
+; VGA routine to calculate the cursor location.
+; Stores the result in ECX.
+;
+.get_cursor_location:
+    mov ecx, [textmode_data.y]
+    imul ecx, 80
+    add ecx, [textmode_data.x]
     ret
 
 ;
@@ -147,26 +200,22 @@ textmode:
     je .printc_handle_cr
     push ecx
     push ebx
-    mov ecx, [textmode_data.y]
-    imul ecx, 80
-    add ecx, [textmode_data.x]
+    call .get_cursor_location
     mov bl, [textmode_data.c]
     mov [0xb8000 + 0 + ecx * 2], al ; *(0xB8000 + 0 + off * 2) = char
     mov [0xb8000 + 1 + ecx * 2], bl ; *(0xB8000 + 1 + off * 2) = color
     pop ebx
-    inc ecx
+    pop ecx
     inc byte [textmode_data.x]
     cmp byte [textmode_data.x], 80
-    jl .printc_update_cursor
-    call .printc_handle_lf
-.printc_update_cursor:
-    call .update_cursor
-    pop ecx
+    jge .printc_handle_lf
+    call .update_cursor_ex
     ret
 .printc_handle_lf:
     inc dword [textmode_data.y]
 .printc_handle_cr:
     mov dword [textmode_data.x], 0
+    call .update_cursor_ex
     ret
 
 ;
