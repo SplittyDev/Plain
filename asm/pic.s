@@ -76,9 +76,13 @@ pic:
 ;
 .remap_master:
     koutb PIC_MASTER_COMMAND, PIC_ICW1_INIT + PIC_ICW1_ICW4
+    kiowait
     koutb PIC_MASTER_DATA, PIC_ICW2_MASTER_OFF
+    kiowait
     koutb PIC_MASTER_DATA, PIC_ICW3_IRQ2_SLAVE
+    kiowait
     koutb PIC_MASTER_DATA, PIC_ICW4_8086
+    kiowait
     ret
 
 ;
@@ -87,9 +91,13 @@ pic:
 ;
 .remap_slave:
     koutb PIC_SLAVE_COMMAND, PIC_ICW1_INIT + PIC_ICW1_ICW4
+    kiowait
     koutb PIC_SLAVE_DATA, PIC_ICW2_SLAVE_OFF
+    kiowait
     koutb PIC_SLAVE_DATA, PIC_ICW3_CASCADE
+    kiowait
     koutb PIC_SLAVE_DATA, PIC_ICW4_8086
+    kiowait
     ret
 
 ;

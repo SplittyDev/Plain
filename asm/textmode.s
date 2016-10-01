@@ -1,11 +1,4 @@
-section .data
-textmode_data:
-    .x: dd 0x00 ; x
-    .y: dd 0x00 ; y
-    .c: db 0x07 ; color
-    .w: db 0x50 ; width
-    .h: db 0x19 ; height
-    .z: db 0x01 ; cursor
+section .rodata
 
 ; Colors
 %define COLOR_BLACK           0x0
@@ -67,6 +60,15 @@ textmode_data:
     kprints %1
     call textmode.reset_color
 %endmacro
+
+section .data
+textmode_data:
+    .x: dd 0x00 ; x
+    .y: dd 0x00 ; y
+    .c: db 0x07 ; color
+    .w: db 0x50 ; width
+    .h: db 0x19 ; height
+    .z: db 0x01 ; cursor
 
 section .text
 textmode:

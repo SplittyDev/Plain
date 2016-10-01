@@ -1,5 +1,4 @@
-section .text
-cpuid_helper:
+section .rodata
 
 ;
 ; Macro to print four characters in a 32-bit register.
@@ -12,6 +11,9 @@ cpuid_helper:
     mov eax, %1
     call .print_register_string
 %endmacro
+
+section .text
+cpuid_helper:
 
 ;
 ; CPUID routine to print the CPU vendor string.

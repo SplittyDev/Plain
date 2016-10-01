@@ -1,10 +1,12 @@
 global start
-%include "vital.s"
-%include "multiboot2.s"
-%include "textmode.s"
-%include "gdt.s"
-%include "pic.s"
-%include "cpuid.s"
+
+%include "multiboot2.s" ; multiboot2 headers
+%include "vital.s"      ; koutb, kiowait
+
+%include "textmode.s"   ; textmode.*
+%include "gdt.s"        ; gdt.*
+%include "pic.s"        ; pic.*
+%include "cpuid.s"      ; cpuid.*
 
 section .rodata
 msg:
@@ -67,6 +69,7 @@ kearly:
     kprints msg.ipic
     call pic.init
     kprints msg.ok, COLOR_CUSTOM_OK
+.setup_idt:
 .end:
     ret
 
@@ -87,7 +90,7 @@ kmain:
     call cpuid_helper.print_brand_string
     call textmode.println
 .end:
-    ret
+    jmp .end
 
 section .bss
 align 4096
