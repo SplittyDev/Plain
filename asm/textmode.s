@@ -38,6 +38,36 @@ textmode_data:
 %define BRIGHT(c) (0x8 + c)
 %define MAKECOLOR(fc, bc) ((fc & 0x0F) | (bc << 4))
 
+;
+; Macro to print a string.
+; Registers are preserved.
+;
+; Usage:
+; kprints <string_addr>
+;
+%macro kprints 1
+    push eax
+    mov eax, %1
+    call textmode.prints
+    pop eax
+%endmacro
+
+;
+; Macro to print a colored string.
+; Registers are preserved.
+;
+; Usage:
+; kprints <string_addr>, <color>
+;
+%macro kprints 2
+    push ax
+    mov al, %2
+    call textmode.set_color
+    pop ax
+    kprints %1
+    call textmode.reset_color
+%endmacro
+
 section .text
 textmode:
 

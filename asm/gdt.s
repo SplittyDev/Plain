@@ -1,9 +1,19 @@
 section .rodata
 gdt_data:
+
+;
+; GDT register.
+;
 align 16
 .gdtr:
+    ; Limit
     dw .end - .start - 1
+    ; Base
 	dd .start
+
+;
+; GDT contents.
+;
 align 16
 .start:
     ; Null descriptor
@@ -19,6 +29,12 @@ align 16
 
 section .text
 gdt:
+
+;
+; Routine to load and configure the GDT.
+; Segment registers are reloaded automatically.
+; General purpose registers are preserved.
+;
 .setup:
     lgdt [gdt_data.gdtr]
 .flush:

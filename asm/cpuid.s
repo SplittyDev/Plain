@@ -2,6 +2,18 @@ section .text
 cpuid_helper:
 
 ;
+; Macro to print four characters in a 32-bit register.
+; Registers are NOT preserved.
+;
+; Usage:
+; printregstr <register>
+;
+%macro printregstr 1
+    mov eax, %1
+    call .print_register_string
+%endmacro
+
+;
 ; CPUID routine to print the CPU vendor string.
 ; Registers are preserved.
 ;
@@ -9,12 +21,9 @@ cpuid_helper:
     pusha
     xor eax, eax
     cpuid
-    mov eax, ebx
-    call .print_register_string
-    mov eax, edx
-    call .print_register_string
-    mov eax, ecx
-    call .print_register_string
+    printregstr ebx
+    printregstr edx
+    printregstr ecx
     popa
     ret
 
@@ -32,13 +41,10 @@ cpuid_helper:
 .print_brand_string_loop:
     push eax
     cpuid
-    call .print_register_string
-    mov eax, ebx
-    call .print_register_string
-    mov eax, ecx
-    call .print_register_string
-    mov eax, edx
-    call .print_register_string
+    printregstr eax
+    printregstr ebx
+    printregstr ecx
+    printregstr edx
     pop eax
     add eax, 0x00000001
     cmp eax, 0x80000004
