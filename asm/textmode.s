@@ -85,7 +85,6 @@ textmode:
 ;
 .set_color:
     push ax
-    and al, 0x0F
     mov ah, bl
     shl ah, 4
     or al, ah

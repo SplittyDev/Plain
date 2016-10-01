@@ -1,20 +1,29 @@
 global start
 
+; Pure packages
 %include "multiboot2.s" ; multiboot2 headers
-%include "vital.s"      ; koutb, kiowait
 
+; Macro packages
+%include "vital.s"      ; koutb, kiowait
+%include "serial.s"     ; kinitcom, ksendcomc, ksendcoms
+
+; Mixed packages
 %include "textmode.s"   ; textmode.*
 %include "gdt.s"        ; gdt.*
 %include "pic.s"        ; pic.*
+%include "isr.s"        ; isr.*
+%include "idt.s"        ; idt.*
 %include "cpuid.s"      ; cpuid.*
 
 section .rodata
 msg:
     .ok:            db 'OK',0x0A,0x00
     .fail:          db 'FAIL',0x0A,0x00
+    .iserial:       db 'Initializing RS-232',0x20,0x00
     .igdt:          db 'Initializing GDT',0x20,0x00
     .ipic:          db 'Initializing PIC',0x20,0x00
     .iapic:         db 'Initializing APIC',0x20,0x00
+    .iidt:          db 'Initializing IDT',0x20,0x00
     .cpuinfo:       db '[CPU Information]',0x0A,0x00
     .vendor:        db 'Vendor:',0x20,0x00
     .brand:         db 'Brand:',0x20,0x00
@@ -61,6 +70,10 @@ start:
 ; Paves the way for kmain.
 ;
 kearly:
+.setup_serial:
+    kprints msg.iserial
+    kinitcom COM1
+    kprints msg.ok, COLOR_CUSTOM_OK
 .setup_gdt:
     kprints msg.igdt
     call gdt.setup
@@ -70,7 +83,11 @@ kearly:
     call pic.init
     kprints msg.ok, COLOR_CUSTOM_OK
 .setup_idt:
+    kprints msg.iidt
+    call idt.setup
+    kprints msg.ok, COLOR_CUSTOM_OK
 .end:
+    sti
     ret
 
 ;
@@ -78,8 +95,8 @@ kearly:
 ;
 kmain:
 .welcome:
-    mov eax, msg.welcome
-    call textmode.prints
+    ksendcoms COM1, msg.welcome
+    kprints msg.welcome
 .cpuinfo:
     call textmode.println
     kprints msg.cpuinfo
