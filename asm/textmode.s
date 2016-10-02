@@ -50,7 +50,7 @@ section .rodata
 ; Registers are preserved.
 ;
 ; Usage:
-; kprints <string_addr>, <color>
+; kprints <string_addr> <, color>
 ;
 %macro kprints 2
     push ax
@@ -59,6 +59,27 @@ section .rodata
     pop ax
     kprints %1
     call textmode.reset_color
+%endmacro
+
+;
+; Macro to print an integer.
+; Registers are preserved.
+;
+; Usage:
+; kprinti <value> [, base]
+;
+%macro kprinti 1-2 10
+    push eax
+    push ebx
+    push ecx
+    mov dword eax, %1
+    mov dword ecx, %2
+    mov dword ebx, __itoabuf32
+    call __itoa
+    pop ecx
+    pop ecx
+    pop eax
+    kprints __itoabuf32
 %endmacro
 
 section .data

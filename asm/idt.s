@@ -1,6 +1,4 @@
-section .rodata:
-idt_msg:
-    .generic_error: db 0x0A,'*** ERROR!!!',0x00
+section .rodata
 
 ;
 ; Macro to calculate the base address of the given gate.
@@ -34,7 +32,7 @@ idt_msg:
     pop eax
 %endmacro
 
-section .rodata:
+section .rodata
 idt_data:
 
 ;

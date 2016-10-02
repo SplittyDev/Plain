@@ -120,7 +120,7 @@ isr:
     ;call .handle_general
     popa
     add esp, 8
-    iret
+    iretd
 
 ; ISRs (Exceptions)
 build_isr 00
