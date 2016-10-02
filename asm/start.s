@@ -121,9 +121,9 @@ stack:
 ;
 ; Reserved:
 ; 0x00-0x01 sign
-; 0x01-0x0B digits (2**32-1 has 10 digits)
-; 0x0B-0x0C NUL
+; 0x01-0x23 digits (2**32-1 in base 2 has 34 digits)
+; 0x23-0x24 NUL
 ;
-align 16
+align 64
 __itoabuf32:
-    resb 12
+    resb 36
