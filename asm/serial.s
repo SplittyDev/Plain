@@ -1,5 +1,15 @@
 section .rodata
 
+;
+; Macro to set the serial port up.
+;
+; Usage:
+; ksetupserial
+;
+%macro ksetupserial 0
+    call kinitcom COM1
+%endmacro
+
 ; COM ports
 %define COM1 0x03F8
 %define COM2 0x02F8

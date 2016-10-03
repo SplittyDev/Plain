@@ -15,19 +15,24 @@ global start
 %include "cpuid.s"      ; cpuid.*
 
 section .rodata
+loglevel:
+    .boot:          db '[BOOT ]',0x20,0x00
+    .info:          db '[INFO ]',0x20,0x00
+    .debug:         db '[DEBUG]',0x20,0x00
+    .error:         db '[ERROR]',0x20,0x00
 msg:
     .ok:            db 'OK',0x0A,0x00
     .fail:          db 'FAIL',0x0A,0x00
     .hexprefix:     db '0x',0x00
-    .iserial:       db '[BOOT] RS-232',0x20,0x00
-    .igdt:          db '[BOOT] GDT',0x20,0x00
-    .ipic:          db '[BOOT] PIC',0x20,0x00
-    .iapic:         db '[BOOT] APIC',0x20,0x00
-    .iidt:          db '[BOOT] IDT',0x20,0x00
-    .ipit:          db '[BOOT] PIT',0x20,0x00
-    .icpuvendor:    db '[INFO] CPU Vendor:',0x00
-    .icpumodel:     db '[INFO] CPU Model:',0x00
-    .icpuprefix:    db '[INFO] -->',0x20,0x00
+    .iserial:       db 'RS-232',0x20,0x00
+    .igdt:          db 'GDT',0x20,0x00
+    .ipic:          db 'PIC',0x20,0x00
+    .iapic:         db 'APIC',0x20,0x00
+    .iidt:          db 'IDT',0x20,0x00
+    .ipit:          db 'PIT',0x20,0x00
+    .icpuvendor:    db 'CPU Vendor:',0x00
+    .icpumodel:     db 'CPU Model:',0x00
+    .icpuprefix:    db '-->',0x20,0x00
     .welcome:       db 'Welcome to plain!',0x0A,0x00
     .prompt:        db 'recovery$',0x20,0x00
 err:
@@ -99,18 +104,20 @@ start:
 ; Pretty simple, but incredibly useful.
 ;
 ; Usage:
-; setup <message> <, routine>
+; setup <thing>
 ;
 ; Notes:
-; <message> => msg.i<message>
+; msg => msg.i<thing>
+; routine => ksetup<thing>
 ;
 ; More notes:
 ; We just assume that the call was successful
 ; if the kernel still runs after it. Duh.
 ;
-%macro setup 2
+%macro setup 1
+    kprints loglevel.boot
     kprints msg.i%1
-    %2
+    ksetup%1
     kprints msg.ok, COLOR_CUSTOM_OK
 %endmacro
 
@@ -122,11 +129,11 @@ kmain:
 
 ; Pave the way for .main.
 .setup:
-    setup gdt, ksetupgdt
-    setup pic, ksetuppic
-    setup idt, ksetupidt
-    setup pit, ksetuppit
-    setup serial, kinitcom
+    setup gdt
+    setup pic
+    setup idt
+    setup pit
+    setup serial
     kinstallirq 0x00, pit
     sti
 
@@ -146,13 +153,17 @@ kmain:
 ; Registers are preserved.
 ;
 .print_cpu_info:
+    kprints loglevel.info
     kprints msg.icpuvendor
     call textmode.println
+    kprints loglevel.info
     kprints msg.icpuprefix
     call cpuid_helper.print_vendor_string
     call textmode.println
+    kprints loglevel.info
     kprints msg.icpumodel
     call textmode.println
+    kprints loglevel.info
     kprints msg.icpuprefix
     call cpuid_helper.print_brand_string
     call textmode.println
