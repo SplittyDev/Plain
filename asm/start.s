@@ -1,19 +1,17 @@
 global start
 
-%include "multiboot2.s" ; multiboot2 headers
-
-%include "vital.s"      ; koutb, kiowait
+%include "multiboot2.s" ;
+%include "vital.s"      ; kinb, koutb, kmemsetb, kmemcpy
 %include "string.s"     ; kitoa
-%include "serial.s"     ; kinitcom, ksendcomc, ksendcoms, ksendcomi
+%include "serial.s"     ; ksetupserial, ksendcomc, ksendcoms, ksendcomi
 %include "textmode.s"   ; kprintc, kprints, kprinti
 %include "pic.s"        ; ksetupidt
 %include "gdt.s"        ; ksetupgdt
 %include "isr.s"        ; kinstallirq
 %include "idt.s"        ; ksetupidt
 %include "pit.s"        ; ksetuppit
-%include "keyboard.s"   ; ...
-
 %include "cpuid.s"      ; cpuid.*
+%include "keyboard.s"   ;
 
 section .rodata
 loglevel:
@@ -31,9 +29,9 @@ msg:
     .iapic:         db 'APIC',0x20,0x00
     .iidt:          db 'IDT',0x20,0x00
     .ipit:          db 'PIT',0x20,0x00
-    .icpuvendor:    db 'CPU Vendor:',0x00
-    .icpumodel:     db 'CPU Model:',0x00
-    .icpuprefix:    db '-->',0x20,0x00
+    .cpuvendor:     db 'CPU Vendor:',0x00
+    .cpumodel:      db 'CPU Model:',0x00
+    .arrow:         db '-->',0x20,0x00
     .welcome:       db 'Welcome to plain!',0x0A,0x00
     .prompt:        db 'recovery$',0x20,0x00
 err:
@@ -157,17 +155,17 @@ kmain:
 ;
 .print_cpu_info:
     kprints loglevel.info
-    kprints msg.icpuvendor
+    kprints msg.cpuvendor
     call textmode.println
     kprints loglevel.info
-    kprints msg.icpuprefix
+    kprints msg.arrow
     call cpuid_helper.print_vendor_string
     call textmode.println
     kprints loglevel.info
-    kprints msg.icpumodel
+    kprints msg.cpumodel
     call textmode.println
     kprints loglevel.info
-    kprints msg.icpuprefix
+    kprints msg.arrow
     call cpuid_helper.print_brand_string
     call textmode.println
     ret

@@ -262,6 +262,8 @@ textmode:
     je .printc_handle_lf
     cmp al, 0x0D
     je .printc_handle_cr
+    cmp al, 0x08
+    je .printc_handle_bs
     push ecx
     push ebx
     call .get_cursor_location
@@ -281,6 +283,30 @@ textmode:
     cmp eax, VIDEO_HEIGHT
     pop eax
     jge .scroll
+    ret
+.printc_handle_bs:
+    mov eax, [textmode_data.x]
+    test eax, eax
+    jnz .printc_handle_bs_dec
+    mov eax, [textmode_data.y]
+    test eax, eax
+    jz .printc_handle_bs_leave
+    mov dword [textmode_data.x], VIDEO_WIDTH - 1
+    mov eax, [textmode_data.y]
+    dec eax
+    mov dword [textmode_data.y], eax
+    kprintc ' '
+    mov dword [textmode_data.x], VIDEO_WIDTH - 1
+    mov dword [textmode_data.y], eax
+    call .update_cursor_ex
+    jmp .printc_handle_bs_leave
+.printc_handle_bs_dec:
+    dec eax
+    mov [textmode_data.x], eax
+    kprintc ' '
+    mov [textmode_data.x], eax
+    call .update_cursor_ex
+.printc_handle_bs_leave:
     ret
 .printc_handle_lf:
     inc dword [textmode_data.y]
