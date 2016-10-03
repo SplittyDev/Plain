@@ -27,7 +27,7 @@ msg:
     .icpumodel:     db '[INFO] CPU Model:',0x00
     .icpuprefix:    db '[INFO] -->',0x20,0x00
     .welcome:       db 'Welcome to plain!',0x0A,0x00
-    .prompt:        db 'recovery$',0x20,0x00   
+    .prompt:        db 'recovery$',0x20,0x00
 err:
     .mblegloader:   db 'Unsupported boot loader: Multiboot (Legacy).',0x00
     .otherloader:   db 'Unsupported boot loader.',0x00

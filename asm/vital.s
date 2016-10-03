@@ -56,3 +56,93 @@ section .rodata
     koutb %1, %2
     kiowait
 %endmacro
+
+;
+; Macro to fill a memory area.
+; Registers are preserved.
+;
+; Usage:
+; kmemsetb <start_address> <, length> [, filler]
+;
+%macro kmemsetb 2-3 0x00
+%%enter:
+    push eax
+    push ebx
+    push ecx
+    xor ecx, ecx
+    mov dword eax, %1
+    mov dword ebx, %2
+%%loop:
+    cmp ecx, ebx
+    jge %%leave
+    mov byte [eax + ecx], %3
+    inc ecx
+    jmp %%loop
+%%leave:
+    pop ecx
+    pop ebx
+    pop eax
+%endmacro
+
+;
+; Macro to fill a memory area.
+; Registers are preserved.
+;
+; -------------------
+; - NOTE: UNTESTED! -
+; -------------------
+;
+; Usage:
+; kmemsetw <start_address> <, length> [, filler]
+;
+%macro kmemsetw 2-3 0x00
+%%enter:
+    push eax
+    push ebx
+    push ecx
+    xor ecx, ecx
+    mov dword eax, %1
+    mov dword ebx, %2
+%%loop:
+    cmp ecx, ebx
+    jge %%leave
+    mov word [eax + ecx * 2], %3
+    inc ecx
+    jmp %%loop
+%%leave:
+    pop ecx
+    pop ebx
+    pop eax
+%endmacro
+
+;
+; Macro to copy one memory chunk to another.
+; Registers are ..probably.. preserved.
+;
+; Usage:
+; kmemcpy <dest_addr> <, src_addr> <, length>
+;
+%macro kmemcpy 3
+%%enter:
+    push eax
+    push ebx
+    push ecx
+    push dx
+    mov dword eax, %1
+    mov dword ebx, %2
+    mov dword ecx, %3
+%%loop:
+    test ecx, ecx
+    jz %%leave
+    mov byte dl, [ebx]
+    mov byte [eax], dl
+    inc eax
+    inc ebx
+    dec ecx
+    jmp %%loop
+%%leave:
+    pop dx
+    pop ecx
+    pop ebx
+    pop eax
+%endmacro

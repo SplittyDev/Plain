@@ -33,8 +33,8 @@ section .rodata
     hlt
     jmp %%hang
 %%irq:
-    kprints msg.hexprefix
-    kprinti %1, 16
+    ;kprints msg.hexprefix
+    ;kprinti %1, 16
     kintack %1
 %%leave:
     pop gs

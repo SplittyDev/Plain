@@ -1,5 +1,11 @@
 section .rodata
 
+; VGA constants
+%define VIDEO_PTR       0xB8000
+%define VIDEO_SIZE      VIDEO_WIDTH * VIDEO_HEIGHT
+%define VIDEO_WIDTH     80
+%define VIDEO_HEIGHT    25
+
 ; Colors
 %define COLOR_BLACK           0x0
 %define COLOR_BLUE            0x1
@@ -240,7 +246,7 @@ textmode:
 ;
 .get_cursor_location:
     mov ecx, [textmode_data.y]
-    imul ecx, 80
+    imul ecx, VIDEO_WIDTH
     add ecx, [textmode_data.x]
     ret
 
@@ -251,6 +257,7 @@ textmode:
 ; AL: Character (ASCII code).
 ;
 .printc:
+    call .printc_check_scroll
     cmp al, 0x0A
     je .printc_handle_lf
     cmp al, 0x0D
@@ -259,14 +266,21 @@ textmode:
     push ebx
     call .get_cursor_location
     mov bl, [textmode_data.c]
-    mov [0xb8000 + 0 + ecx * 2], al ; *(0xB8000 + 0 + off * 2) = char
-    mov [0xb8000 + 1 + ecx * 2], bl ; *(0xB8000 + 1 + off * 2) = color
+    mov [VIDEO_PTR + 0 + ecx * 2], al ; *(0xB8000 + 0 + off * 2) = char
+    mov [VIDEO_PTR + 1 + ecx * 2], bl ; *(0xB8000 + 1 + off * 2) = color
     pop ebx
     pop ecx
     inc byte [textmode_data.x]
-    cmp byte [textmode_data.x], 80
+    cmp byte [textmode_data.x], VIDEO_WIDTH
     jge .printc_handle_lf
     call .update_cursor_ex
+    ret
+.printc_check_scroll:
+    push eax
+    mov eax, [textmode_data.y]
+    cmp eax, VIDEO_HEIGHT
+    pop eax
+    jge .scroll
     ret
 .printc_handle_lf:
     inc dword [textmode_data.y]
@@ -317,4 +331,22 @@ textmode:
 .printsln:
     call .prints
     call .println
+    ret
+
+;
+; VGA routine to clear the framebuffer.
+; Registers are preserved.
+;
+.clear:
+    kmemsetb VIDEO_PTR, VIDEO_SIZE * 2, 0x00
+    ret
+
+;
+; VGA routine to scroll the framebuffer.
+; Registers are preserved.
+;
+.scroll:
+    kmemcpy VIDEO_PTR, VIDEO_PTR + (VIDEO_WIDTH * 2), VIDEO_WIDTH * (VIDEO_HEIGHT - 1) * 2
+    kmemsetb VIDEO_PTR + (VIDEO_WIDTH * (VIDEO_HEIGHT - 1) * 2), VIDEO_WIDTH * 2, 0x00
+    mov dword [textmode_data.y], (VIDEO_HEIGHT - 1)
     ret
