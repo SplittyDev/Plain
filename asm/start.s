@@ -11,6 +11,7 @@ global start
 %include "isr.s"        ; kinstallirq
 %include "idt.s"        ; ksetupidt
 %include "pit.s"        ; ksetuppit
+%include "keyboard.s"   ; ...
 
 %include "cpuid.s"      ; cpuid.*
 
@@ -135,6 +136,7 @@ kmain:
     setup pit
     setup serial
     kinstallirq 0x00, pit
+    kinstallirq 0x01, keyboard
     sti
 
 ; There we go
@@ -142,6 +144,7 @@ kmain:
     call .print_cpu_info
     ksendcoms msg.welcome
     kprints msg.welcome
+    kprints msg.prompt
     jmp .end
 
 ; Temporary workaround to keep the kernel alive.
