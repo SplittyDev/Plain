@@ -1,6 +1,30 @@
 section .rodata
 
 ;
+; Convenience wrapper for __itoa.
+; Registers are preserved.
+;
+; Usage:
+; kitoa <value> [, base]
+;
+; Produces a null-terminated string in __itoabuf32.
+;
+%macro kitoa 1-2 10
+    push eax
+    push ebx
+    push ecx
+    mov dword eax, %1
+    mov dword ecx, %2
+    mov dword ebx, __itoabuf32
+    call __itoa
+    pop ecx
+    pop ecx
+    pop eax
+%endmacro
+
+section .rodata
+
+;
 ; Conversion table for __itoa.
 ; Works for bases [2 ... 36].
 ;

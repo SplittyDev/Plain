@@ -32,6 +32,32 @@ section .rodata
 %define MAKECOLOR(fc, bc) ((fc & 0x0F) | (bc << 4))
 
 ;
+; Macro to print a character.
+; Registers are preserved.
+;
+; Usage:
+; kprintc <character>
+;
+%macro kprintc 1
+    push eax
+    mov eax, %1
+    call textmode.printc
+    pop eax
+%endmacro
+
+;
+; Macro to print an integer.
+; Registers are preserved.
+;
+; Usage:
+; kprinti <value> [, base]
+;
+%macro kprinti 1-2 10
+    kitoa %1, %2
+    kprints __itoabuf32
+%endmacro
+
+;
 ; Macro to print a string.
 ; Registers are preserved.
 ;
@@ -59,27 +85,6 @@ section .rodata
     pop ax
     kprints %1
     call textmode.reset_color
-%endmacro
-
-;
-; Macro to print an integer.
-; Registers are preserved.
-;
-; Usage:
-; kprinti <value> [, base]
-;
-%macro kprinti 1-2 10
-    push eax
-    push ebx
-    push ecx
-    mov dword eax, %1
-    mov dword ecx, %2
-    mov dword ebx, __itoabuf32
-    call __itoa
-    pop ecx
-    pop ecx
-    pop eax
-    kprints __itoabuf32
 %endmacro
 
 section .data

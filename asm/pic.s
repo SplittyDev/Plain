@@ -36,35 +36,41 @@ section .rodata
 %define PIC_ICW4_BUF_SLAVE  0x08
 %define PIC_ICW4_BUF_MASTER 0x0C
 %define PIC_ICW4_SFNM       0x10
- 
+
+;
+; Macro to acknowledge an interrupt.
+; Registers are preserved.
+;
+; Usage:
+; kintack <interrupt>
+;
+%macro kintack 1
+%%enter:
+    push ax
+    mov byte al, %1
+    cmp byte al, 0x08
+    jl %%master
+%%slave:
+    koutb PIC_SLAVE_COMMAND, PIC_EOI
+    jmp %%leave
+%%master:
+    koutb PIC_MASTER_COMMAND, PIC_EOI
+%%leave:
+    pop ax
+%endmacro
+
 section .text
 pic:
 
 ;
-; PIC routine to send end of interrupt (EOI).
-; Automatically chooses which PIC to send to.
-; Registers are preserved.
-;
-; AL: IRQ number
-;
-.send_eoi:
-    cmp byte al, 0x08
-    jl .send_eoi_master
-.send_eoi_slave:
-    koutb PIC_SLAVE_COMMAND, PIC_EOI
-.send_eoi_master:
-    koutb PIC_MASTER_COMMAND, PIC_EOI
-    ret
-
-;
-; Routine to initialize the PIC.
+; Routine to remap the PIC.
 ; Registers are preserved.
 ;
 ; Remaps PIC 1 to PIC_ICW2_MASTER_OFF.
 ; Remaps PIC 2 to PIC_ICW2_SLAVE_OFF.
 ; IRQs are unmasked after remapping.
 ;
-.init:
+.remap:
     call .remap_master
     call .remap_slave
     call .enable
@@ -75,14 +81,10 @@ pic:
 ; Registers are preserved.
 ;
 .remap_master:
-    koutb PIC_MASTER_COMMAND, PIC_ICW1_INIT + PIC_ICW1_ICW4
-    kiowait
-    koutb PIC_MASTER_DATA, PIC_ICW2_MASTER_OFF
-    kiowait
-    koutb PIC_MASTER_DATA, PIC_ICW3_IRQ2_SLAVE
-    kiowait
-    koutb PIC_MASTER_DATA, PIC_ICW4_8086
-    kiowait
+    koutbwait PIC_MASTER_COMMAND, PIC_ICW1_INIT + PIC_ICW1_ICW4
+    koutbwait PIC_MASTER_DATA, PIC_ICW2_MASTER_OFF
+    koutbwait PIC_MASTER_DATA, PIC_ICW3_IRQ2_SLAVE
+    koutbwait PIC_MASTER_DATA, PIC_ICW4_8086
     ret
 
 ;
@@ -90,14 +92,10 @@ pic:
 ; Registers are preserved.
 ;
 .remap_slave:
-    koutb PIC_SLAVE_COMMAND, PIC_ICW1_INIT + PIC_ICW1_ICW4
-    kiowait
-    koutb PIC_SLAVE_DATA, PIC_ICW2_SLAVE_OFF
-    kiowait
-    koutb PIC_SLAVE_DATA, PIC_ICW3_CASCADE
-    kiowait
-    koutb PIC_SLAVE_DATA, PIC_ICW4_8086
-    kiowait
+    koutbwait PIC_SLAVE_COMMAND, PIC_ICW1_INIT + PIC_ICW1_ICW4
+    koutbwait PIC_SLAVE_DATA, PIC_ICW2_SLAVE_OFF
+    koutbwait PIC_SLAVE_DATA, PIC_ICW3_CASCADE
+    koutbwait PIC_SLAVE_DATA, PIC_ICW4_8086
     ret
 
 ;
@@ -105,8 +103,8 @@ pic:
 ; Registers are preserved.
 ;
 .enable:
-    koutb PIC_MASTER_DATA, PIC_UNMASK
-    koutb PIC_SLAVE_DATA, PIC_UNMASK
+    koutbwait PIC_MASTER_DATA, PIC_UNMASK
+    koutbwait PIC_SLAVE_DATA, PIC_UNMASK
     ret
 
 ;
@@ -114,6 +112,6 @@ pic:
 ; Registers are preserved.
 ;
 .disable:
-    koutb PIC_MASTER_DATA, PIC_MASK
-    koutb PIC_SLAVE_DATA, PIC_MASK
+    koutbwait PIC_MASTER_DATA, PIC_MASK
+    koutbwait PIC_SLAVE_DATA, PIC_MASK
     ret

@@ -1,11 +1,38 @@
 section .rodata
 
 ;
+; Macro to waste an I/O cycle.
+; Preserves registers.
+;
+; Usage:
+; kiowait
+;
+%macro kiowait 0
+    koutb 0x80, 0x00
+%endmacro
+
+;
+; Macro to wrap the in instruction.
+;
+; Mapping:
+; OUT/AL = Result
+;
+; Usage:
+; kinb <addr>
+;
+%macro kinb 1
+    push dx
+    mov word dx, %1
+    in al, dx
+    pop dx
+%endmacro
+
+;
 ; Macro to wrap the out instruction.
 ; Preserves registers.
 ;
 ; Usage:
-; koutb <addr> <val>
+; koutb <addr> <, val>
 ;
 %macro koutb 2
     push dx
@@ -18,12 +45,14 @@ section .rodata
 %endmacro
 
 ;
-; Macro to waste an IO cycle.
+; Macro to wrap the out instruction.
+; Burns an additional I/O cycle.
 ; Preserves registers.
 ;
 ; Usage:
-; kiowait
+; koutbwait <addr> <, val>
 ;
-%macro kiowait 0
-    koutb 0x80, 0x00
+%macro koutbwait 2
+    koutb %1, %2
+    kiowait
 %endmacro
