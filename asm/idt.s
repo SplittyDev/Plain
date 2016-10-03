@@ -1,6 +1,16 @@
 section .rodata
 
 ;
+; Macro to set the IDT up.
+;
+; Usage:
+; ksetupidt
+;
+%macro ksetupidt 0
+    call idt.setup
+%endmacro
+
+;
 ; Macro to calculate the base address of the given gate.
 ;
 %define IDT_GATE_ADDR(gate) (idt_data.start + (gate * 8))

@@ -1,5 +1,15 @@
 section .rodata
 
+;
+; Macro to set the PIC up.
+;
+; Usage:
+; ksetuppic
+;
+%macro ksetuppic 0
+    call pic.remap
+%endmacro
+
 ; General
 %define PIC_EOI             0x20
 
@@ -52,7 +62,6 @@ section .rodata
     jl %%master
 %%slave:
     koutb PIC_SLAVE_COMMAND, PIC_EOI
-    jmp %%leave
 %%master:
     koutb PIC_MASTER_COMMAND, PIC_EOI
 %%leave:

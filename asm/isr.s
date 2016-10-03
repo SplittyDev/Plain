@@ -1,5 +1,21 @@
 section .rodata
 
+;
+; Macro to install an IRQ handler.
+;
+; Usage:
+; kinstallirq <irq> <, handler>
+;
+%macro kinstallirq 2
+    mov dword [irq_handlers + %1 * 32], %2%[.irqh]
+%endmacro
+
+;
+; Macro to handle ISRs.
+;
+; Usage:
+; kisr <interrupt>
+;
 %macro kisr 1
 %%enter:
     pushad
@@ -33,8 +49,15 @@ section .rodata
     hlt
     jmp %%hang
 %%irq:
-    ;kprints msg.hexprefix
-    ;kprinti %1, 16
+%%irq_enter:
+    push eax
+    mov dword eax, [irq_handlers + (%1 - 0x20) * 32]
+    test eax, eax
+    jz %%irq_leave
+%%irq_handle:
+    call eax
+%%irq_leave:
+    pop eax
     kintack %1
 %%leave:
     pop gs
@@ -87,3 +110,7 @@ isr_frame:
     .ecx:   dd 0x00000000
     .edx:   dd 0x00000000
     .esp:   dd 0x00000000
+
+section .bss
+irq_handlers:
+    resd 32

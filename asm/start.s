@@ -6,11 +6,12 @@ global start
 %include "string.s"     ; kitoa
 %include "serial.s"     ; kinitcom, ksendcomc, ksendcoms, ksendcomi
 %include "textmode.s"   ; kprintc, kprints, kprinti
-%include "pic.s"        ; kintack, pic.*
+%include "pic.s"        ; ksetupidt
+%include "gdt.s"        ; ksetupgdt
+%include "isr.s"        ; kinstallirq
+%include "idt.s"        ; ksetupidt
+%include "pit.s"        ; ksetuppit
 
-%include "gdt.s"        ; gdt.*
-%include "isr.s"        ; isr.*
-%include "idt.s"        ; idt.*
 %include "cpuid.s"      ; cpuid.*
 
 section .rodata
@@ -23,6 +24,7 @@ msg:
     .ipic:          db '[BOOT] PIC',0x20,0x00
     .iapic:         db '[BOOT] APIC',0x20,0x00
     .iidt:          db '[BOOT] IDT',0x20,0x00
+    .ipit:          db '[BOOT] PIT',0x20,0x00
     .icpuvendor:    db '[INFO] CPU Vendor:',0x00
     .icpumodel:     db '[INFO] CPU Model:',0x00
     .icpuprefix:    db '[INFO] -->',0x20,0x00
@@ -78,6 +80,10 @@ start:
 ; Handle multiboot2 boot.
 ;
 .multiboot2:
+    xor eax, eax
+    xor ebx, ebx
+    xor ecx, ecx
+    xor edx, edx
     jmp kmain
 
 ;
@@ -89,41 +95,57 @@ start:
     jmp .freeze
 
 ;
+; Prints a message and calls a function.
+; Pretty simple, but incredibly useful.
+;
+; Usage:
+; setup <message> <, routine>
+;
+; Notes:
+; <message> => msg.i<message>
+;
+; More notes:
+; We just assume that the call was successful
+; if the kernel still runs after it. Duh.
+;
+%macro setup 2
+    kprints msg.i%1
+    %2
+    kprints msg.ok, COLOR_CUSTOM_OK
+%endmacro
+
+;
 ; Main entry point of the kernel.
 ; Gets jumped into by `start`.
 ;
 kmain:
 
-    ; Initialize registers
-    xor eax, eax
-    xor ebx, ebx
-    xor ecx, ecx
-    xor edx, edx
-
-    ; Prepare serial out
-    kprints msg.iserial
-    kinitcom
-    kprints msg.ok, COLOR_CUSTOM_OK
-
-    ; Load GDT
-    kprints msg.igdt
-    call gdt.setup
-    kprints msg.ok, COLOR_CUSTOM_OK
-
-    ; Remap PIC
-    kprints msg.ipic
-    call pic.remap
-    kprints msg.ok, COLOR_CUSTOM_OK
-
-    ; Load IDT
-    kprints msg.iidt
-    call idt.setup
-    kprints msg.ok, COLOR_CUSTOM_OK
-
-    ; Enable interrupts
+; Pave the way for .main.
+.setup:
+    setup gdt, ksetupgdt
+    setup pic, ksetuppic
+    setup idt, ksetupidt
+    setup pit, ksetuppit
+    setup serial, kinitcom
+    kinstallirq 0x00, pit
     sti
 
-    ; Print CPU info
+; There we go
+.main:
+    call .print_cpu_info
+    ksendcoms msg.welcome
+    kprints msg.welcome
+    jmp .end
+
+; Temporary workaround to keep the kernel alive.
+.end:
+    jmp .end
+
+;
+; Prints some basic information about the CPU.
+; Registers are preserved.
+;
+.print_cpu_info:
     kprints msg.icpuvendor
     call textmode.println
     kprints msg.icpuprefix
@@ -134,16 +156,7 @@ kmain:
     kprints msg.icpuprefix
     call cpuid_helper.print_brand_string
     call textmode.println
-
-    ; Print welcome message
-    ksendcoms msg.welcome
-    kprints msg.welcome
-
-;
-; Temporary workaround to keep the kernel alive.
-;
-.end:
-    jmp .end
+    ret
 
 section .bss
 
