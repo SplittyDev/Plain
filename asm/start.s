@@ -1,27 +1,127 @@
 global start
 
-%include "multiboot2.s" ;
-%include "vital.s"      ; kinb, koutb, kmemsetb, kmemcpy
-%include "string.s"     ; kitoa
-%include "serial.s"     ; ksetupserial, ksendcomc, ksendcoms, ksendcomi
-%include "textmode.s"   ; kprintc, kprints, kprinti
-%include "pic.s"        ; ksetupidt
-%include "gdt.s"        ; ksetupgdt
-%include "isr.s"        ; kinstallirq
-%include "idt.s"        ; ksetupidt
-%include "pit.s"        ; ksetuppit
-%include "rtc.s"        ; ksetuprtc, kreadrtc
-%include "cpuid.s"      ; cpuid.*
-%include "keyboard.s"   ;
-
-section .rodata
+;
+; Multiboot2 Headers
+;
+; Exports:
+; None.
+;
+%include "multiboot2.s"
 
 ;
-; Macro to translate a memory-mapped address
-; to the corresponding higher-half address.
+; Plain Hardware Interface.
 ;
-%define TRANSLATE(addr) (0xC0000000 | addr)
+; Exports:
+; - PHI_USE
+; - PHI_LOAD
+; - PHI_UNLOAD
+;
+%include "phi.s"
 
+;
+; Vital Routines.
+;
+; Exports:
+; - kinb
+; - kinbsafe
+; - koutb
+; - koutbwait
+; - kmemsetb
+; - kmemsetw
+; - kmemcpy
+; - kiowait
+;
+%include "vital.s"
+
+;
+; String Routines.
+;
+; Exports:
+; - kitoa
+;
+%include "string.s"
+
+;
+; VGA Textmode Framebuffer.
+;
+; Exports:
+; - kprintc
+; - kprints
+; - kprinti
+;
+PHI_USE textmode
+
+;
+; Serial Port.
+;
+; Exports:
+; - ksendcomc
+; - ksendcoms
+; - ksendcomi
+;
+PHI_USE serial    
+
+;
+; Programmable Interrupt Controller.
+;
+; Exports:
+; None.
+;  
+PHI_USE pic
+
+;
+; Global Descriptor Table.
+;
+; Exports:
+; None.
+;  
+PHI_USE gdt
+
+;
+; Interrupt Descritor Table.
+;
+; Exports:
+; - IRQ_INSTALL
+;
+PHI_USE idt
+
+;
+; Programmable Interval Timer.
+;
+; Exports:
+; None.
+;
+PHI_USE pit
+
+;
+; Real Time Clock.
+;
+; Exports:
+; - kreadrtc
+;
+PHI_USE rtc
+
+;
+; PS/2 Keyboard.
+;
+; Exports:
+; - kgetc
+;
+PHI_USE keyboard
+
+;
+; CPUID Query Helpers.
+;
+; Exports:
+; - cpuid
+; --- .print_vendor_string
+; --- .print_brand_string
+;
+%include "cpuid.s"
+
+;
+; Constant strings used by the kernel.
+;
 section .rodata
 loglevel:
     .boot:          db '[BOOT]',0x20,0x00
@@ -139,15 +239,15 @@ kprintc `\n`
 
 ; Pave the way for .main.
 .setup:
-    setup gdt
-    setup pic
-    setup idt
-    setup pit
-    setup rtc
-    setup serial
-    kinstallirq 0x00, pit
-    kinstallirq 0x01, keyboard
-    kinstallirq 0x08, rtc
+    PHI_LOAD gdt
+    PHI_LOAD pic
+    PHI_LOAD idt
+    PHI_LOAD pit
+    PHI_LOAD rtc
+    PHI_LOAD serial
+    IRQ_INSTALL 0x00, pit
+    IRQ_INSTALL 0x01, keyboard
+    IRQ_INSTALL 0x08, rtc
     sti
 
 ; There we go
@@ -155,12 +255,12 @@ kprintc `\n`
     call .print_cpu_info
     ksendcoms msg.welcome
     kprints msg.welcome
-    kprints msg.prompt
+    kprinti 31
 
 ; Temporary workaround to keep the kernel alive.
 .end:
     call textmode.disable_cursor
-    jmp .end
+    jmp $
 
 ;
 ; Prints some basic information about the CPU.
@@ -191,15 +291,3 @@ stack:
 .bottom:
     resb 4096
 .top:
-
-;
-; Buffer to store the result of __itoa in.
-;
-; Reserved:
-; 0x00-0x01 sign
-; 0x01-0x23 digits (2**32-1 in base 2 has 34 digits)
-; 0x23-0x24 NUL
-;
-align 4
-__itoabuf32:
-    resb 36

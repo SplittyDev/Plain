@@ -1,16 +1,4 @@
 section .rodata
-
-;
-; Macro to set the GDT up.
-;
-; Usage:
-; ksetupgdt
-;
-%macro ksetupgdt 0
-    call gdt.setup
-%endmacro
-
-section .rodata
 gdt_data:
 
 ;

@@ -1,15 +1,5 @@
 section .rodata
 
-;
-; Macro to set the PIC up.
-;
-; Usage:
-; ksetuppic
-;
-%macro ksetuppic 0
-    call pic.remap
-%endmacro
-
 ; General
 %define PIC_EOI             0x20
 

@@ -1,19 +1,40 @@
 section .rodata
 
 ;
-; Macro to set the IDT up.
-;
-; Usage:
-; ksetupidt
-;
-%macro ksetupidt 0
-    call idt.setup
-%endmacro
-
-;
 ; Macro to calculate the base address of the given gate.
 ;
 %define IDT_GATE_ADDR(gate) (idt_data.start + (gate * 8))
+
+;
+; Macro to install an IRQ handler.
+;
+; Usage:
+; IRQ_INSTALL <irq> <, handler>
+;
+%macro IRQ_INSTALL 2
+    mov dword [irq_handlers + %1 * 32], %[%2].irqh
+%endmacro
+
+;
+; Macro to build an ISR (Common).
+;
+%macro build_isr 1
+    .isr%1:
+        cli
+        kisr %1
+        iretd
+%endmacro
+
+;
+; Macro to build an ISR (Exception).
+;
+%macro build_exc 1
+    .isr%1:
+        cli
+        kisr %1
+        add esp, 8
+        iretd
+%endmacro
 
 ;
 ; Macro to set an IDT gate.
@@ -43,59 +64,120 @@ section .rodata
 %endmacro
 
 ;
-; Macro to build an ISR (Common).
+; Macro to handle ISRs.
 ;
-%macro build_isr 1
-    .isr%1:
-        cli
-        kisr %1
-        iretd
-%endmacro
-
+; Usage:
+; kisr <interrupt>
 ;
-; Macro to build an ISR (Exception).
-;
-%macro build_exc 1
-    .isr%1:
-        cli
-        kisr %1
-        add esp, 8
-        iretd
+%macro kisr 1
+%%enter:
+    pushad
+    push ds
+    push es
+    push fs
+    push gs
+%%transition:
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+%%general:
+    mov al, %1
+    cmp byte al, 0x1F
+    jle %%exception
+    cmp byte al, 0x2F
+    jle %%irq
+    jmp %%hang
+%%exception:
+    call textmode.disable_cursor
+    mov dword [textmode_data.x], 0x00
+    mov dword [textmode_data.y], 0x00
+    mov dword eax, %1
+    imul eax, 32
+    add eax, exception_table
+    kprints eax, MAKECOLOR(COLOR_WHITE, COLOR_RED)
+%%hang:
+    cli
+    hlt
+    jmp %%hang
+%%irq:
+%%irq_enter:
+    push eax
+    mov dword eax, [irq_handlers + (%1 - 0x20) * 32]
+    test eax, eax
+    jz %%irq_leave
+%%irq_handle:
+    call eax
+%%irq_leave:
+    pop eax
+    kintack %1
+%%leave:
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popad
 %endmacro
 
 section .rodata
-idt_data:
 
 ;
-; IDT register
+; IDT register.
 ;
 align 16
-.idtr:
+idtr:
     ; Limit
-    dw .end - .start - 1
+    dw idt_data.end - idt_data.start - 1
     ; Base
-    dd .start
-
-section .bss
-align 16
+    dd idt_data.start
 
 ;
-; IDT contents
+; ISR exception lookup table.
 ;
-.start:
-    resb 0x4000
-.end:
+exception_table:
+    db 'DIVIDE BY ZERO',0x00,'                 '
+    db 'DEBUG',0x00,'                          '
+    db 'NON MASKABLE INTERRUPT',0x00,'         '
+    db 'BREAKPOINT',0x00,'                     '
+    db 'INTO DETECTED OVERFLOW',0x00,'         '
+    db 'OUT OF BOUNDS',0x00,'                  '
+    db 'INVALID OPCODE',0x00,'                 '
+    db 'NO COPROCESSOR',0x00,'                 '
+    db 'DOUBLE FAULT',0x00,'                   '
+    db 'COPROCESSOR SEGMENT OVERRUN',0x00,'    '
+    db 'BAD TSS',0x00,'                        '
+    db 'SEGMENT NOT PRESENT',0x00,'            '
+    db 'STACK FAULT',0x00,'                    '
+    db 'GENERAL PROTECTION FAULT',0x00,'       '
+    db 'PAGE FAULT',0x00,'                     '
+    db 'UNKNOWN INTERRUPT',0x00,'              '
+    db 'COPROCESSOR FAULT',0x00,'              '
+    db 'ALIGNMENT CHECK',0x00,'                '
+    db 'MACHINE CHECK',0x00,'                  '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
+    db 'X',0x00,'                              '
 
 section .text
 idt:
 
 ;
-; Routine to set ISRs up.
+; Routine to set the IDT gates.
 ; Loads the IDT in the process.
-; Does not modify any registers.
+; Registers are preserved.
 ;
-.setup:
-
+.set_gates:
     ; Exceptions
     idtsetgate 0x00, idt.isr00, 0x08, 0x8E
     idtsetgate 0x01, idt.isr01, 0x08, 0x8E
@@ -116,7 +198,6 @@ idt:
     idtsetgate 0x10, idt.isr16, 0x08, 0x8E
     idtsetgate 0x11, idt.isr17, 0x08, 0x8E
     idtsetgate 0x12, idt.isr18, 0x08, 0x8E
-
     ; Reserved
     idtsetgate 0x13, idt.isr19, 0x08, 0x8E
     idtsetgate 0x14, idt.isr20, 0x08, 0x8E
@@ -131,7 +212,6 @@ idt:
     idtsetgate 0x1d, idt.isr29, 0x08, 0x8E
     idtsetgate 0x1e, idt.isr30, 0x08, 0x8E
     idtsetgate 0x1f, idt.isr31, 0x08, 0x8E
-
     ; IRQs
     idtsetgate 0x20, idt.isr32, 0x08, 0x8E
     idtsetgate 0x21, idt.isr33, 0x08, 0x8E
@@ -149,8 +229,7 @@ idt:
     idtsetgate 0x2d, idt.isr45, 0x08, 0x8E
     idtsetgate 0x2e, idt.isr46, 0x08, 0x8E
     idtsetgate 0x2f, idt.isr47, 0x08, 0x8E
-
-    lidt [idt_data.idtr]
+    lidt [idtr]
     ret
 
 ; ISRs (Exceptions)
@@ -173,7 +252,6 @@ build_isr 15
 build_isr 16
 build_exc 17
 build_isr 18
-
 ; ISRs (Reserved)
 build_isr 19
 build_isr 20
@@ -188,7 +266,6 @@ build_isr 28
 build_isr 29
 build_isr 30
 build_isr 31
-
 ; IRQs
 build_isr 32
 build_isr 33
@@ -206,3 +283,19 @@ build_isr 44
 build_isr 45
 build_isr 46
 build_isr 47
+
+section .bss
+
+;
+; IDT contents
+;
+idt_data:
+.start:
+    resb 0x4000
+.end:
+
+;
+; IRQ handlers
+;
+irq_handlers:
+    resd 32

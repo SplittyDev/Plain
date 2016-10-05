@@ -1,6 +1,12 @@
 section .rodata
 
 ;
+; Define to translate a memory-mapped address
+; to the corresponding higher-half address.
+;
+%define TRANSLATE(addr) (0xC0000000 | addr)
+
+;
 ; Macro to waste an I/O cycle.
 ; Preserves registers.
 ;

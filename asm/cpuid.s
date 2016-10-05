@@ -20,13 +20,13 @@ cpuid_helper:
 ; Registers are preserved.
 ;
 .print_vendor_string:
-    pusha
+    pushad
     xor eax, eax
     cpuid
     printregstr ebx
     printregstr edx
     printregstr ecx
-    popa
+    popad
     ret
 
 ;
@@ -34,7 +34,7 @@ cpuid_helper:
 ; Registers are preserved.
 ;
 .print_brand_string:
-    pusha
+    pushad
     mov eax, 0x80000000
     cpuid
     cmp eax, 0x80000004
@@ -52,7 +52,7 @@ cpuid_helper:
     cmp eax, 0x80000004
     jle .print_brand_string_loop
 .print_brand_string_end:
-    popa
+    popad
     ret
 
 ;

@@ -28,16 +28,6 @@ section .rodata
 %define RTC_REG(reg, nmi) (reg | nmi)
 
 ;
-; Macro to set the RTC up.
-;
-; Usage:
-; ksetuprtc
-;
-%macro ksetuprtc 0
-    call rtc.enable_interrupts
-%endmacro
-
-;
 ; Macro to read a specific value from the RTC.
 ; OUT\ EAX = Result
 ;

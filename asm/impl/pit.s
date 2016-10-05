@@ -1,15 +1,5 @@
 section .rodata
 
-;
-; Macro to set the PIT up.
-;
-; Usage:
-; ksetuppit
-;
-%macro ksetuppit 0
-    call pit.setup
-%endmacro
-
 ; PIT constants
 %define PIT_PHASE       100
 %define PIT_FREQUENCY   1193182
@@ -21,14 +11,6 @@ section .rodata
 
 section .text
 pit:
-
-;
-; Routine to initialize the PIT.
-; Registers are preserved.
-;
-.setup:
-    call .set_phase
-    ret
 
 ;
 ; Routine to set the phase of the PIT.

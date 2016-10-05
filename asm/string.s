@@ -105,3 +105,17 @@ __itoa:
     pop ebx
     pop eax
     ret
+
+section .bss
+
+;
+; Buffer to store the result of __itoa in.
+;
+; Reserved:
+; 0x00-0x01 sign
+; 0x01-0x23 digits (2**32-1 in base 2 has 34 digits)
+; 0x23-0x24 NUL
+;
+align 4
+__itoabuf32:
+    resb 36

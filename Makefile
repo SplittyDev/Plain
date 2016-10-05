@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 INDIR		= asm
 OUTDIR		= build
 MKRDIR		= iso
@@ -64,7 +66,7 @@ assemble:
 	printf "Assembling sources...\040" >> $(STATFILE); \
 	if nasm \
 		-f $(ASFORMAT) \
-		-o $(OUTDIR)/start.o \
+		-o ./$(OUTDIR)/start.o \
 		-I $(INDIR)/ \
 		$(INDIR)/start.s \
 		>> $(STATFILE)_as; \
