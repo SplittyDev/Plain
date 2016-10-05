@@ -28,6 +28,20 @@ section .rodata
 %endmacro
 
 ;
+; Macro to wrap the in instruction.
+; Discards the value after reading.
+; Registers are preserved.
+;
+; Usage:
+; kinb <addr>
+;
+%macro kinbsafe 1
+    push ax
+    kinb %1
+    pop ax
+%endmacro
+
+;
 ; Macro to wrap the out instruction.
 ; Preserves registers.
 ;

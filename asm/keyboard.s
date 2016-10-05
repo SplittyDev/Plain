@@ -1,3 +1,9 @@
+;
+; Driver:       Keyboard
+; Description:  PS/2 Keyboard
+; Interface:    PS/2
+;
+
 section .rodata
 
 ;
@@ -51,6 +57,17 @@ section .rodata
 %define KBD_COM_MK_SINGLE           0xFD
 %define KBD_COM_RESEND              0xFE
 %define KBD_COM_SELF_TEST           0xFF
+
+;
+; Macro to read a single character from the keyboard.
+; OUT\ AL = Most recent character
+;
+; Usage:
+; kgetc
+;
+%macro kgetc 0
+    mov byte al, [keyboard_data.lastkey]
+%endmacro
 
 section .rodata:
 keymap:
@@ -125,6 +142,7 @@ keymap:
 section .data
 keyboard_data:
     .shift: db 0
+    .lastkey: db 0
 
 section .text
 keyboard:
@@ -162,7 +180,8 @@ keyboard:
 .irqh_print_key:
     mov byte [keyboard_data.shift], 0
     add eax, keymap.en_us
-    kprintc [eax]
+    mov byte al, [eax]
+    mov byte [keyboard_data.lastkey], al
     jmp .irqh_leave
 .irqh_key_released:
     jmp .irqh_leave

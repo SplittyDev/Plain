@@ -368,6 +368,21 @@ textmode:
     ret
 
 ;
+; VGA routine to clear the current line.
+; Registers are preserved.
+;
+.clear_line:
+    push eax
+    mov eax, [textmode_data.y]
+    imul eax, VIDEO_WIDTH
+    imul eax, 2
+    add dword eax, 0xB8000
+    kmemsetw eax, VIDEO_WIDTH, 0x0000
+    pop eax
+    mov dword [textmode_data.x], 0
+    ret
+
+;
 ; VGA routine to scroll the framebuffer.
 ; Registers are preserved.
 ;

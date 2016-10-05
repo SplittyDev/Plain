@@ -3,23 +3,20 @@ ENTRY(start)
 SECTIONS {
   . = 1M;
 
-  .boot : {
+  .text ALIGN(0x1000) : {
     KEEP(*(.multiboot))
-  }
-
-  .text : {
     *(.text .text.*)
   }
 
-  .bss : {
-    *(.bss)
+  .data ALIGN(0x1000) : {
+    *(.data .data.*)
   }
 
-  .rodata : {
+  .rodata ALIGN(0x1000) : {
     *(.rodata .rodata.*)
   }
 
-  .data.rel.ro : {
-    *(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
+  .bss ALIGN(0x1000) : {
+    *(.bss)
   }
 }

@@ -10,13 +10,22 @@ global start
 %include "isr.s"        ; kinstallirq
 %include "idt.s"        ; ksetupidt
 %include "pit.s"        ; ksetuppit
+%include "rtc.s"        ; ksetuprtc, kreadrtc
 %include "cpuid.s"      ; cpuid.*
 %include "keyboard.s"   ;
 
 section .rodata
+
+;
+; Macro to translate a memory-mapped address
+; to the corresponding higher-half address.
+;
+%define TRANSLATE(addr) (0xC0000000 | addr)
+
+section .rodata
 loglevel:
-    .boot:          db '[BOOT ]',0x20,0x00
-    .info:          db '[INFO ]',0x20,0x00
+    .boot:          db '[BOOT]',0x20,0x00
+    .info:          db '[INFO]',0x20,0x00
     .debug:         db '[DEBUG]',0x20,0x00
     .error:         db '[ERROR]',0x20,0x00
 msg:
@@ -29,6 +38,7 @@ msg:
     .iapic:         db 'APIC',0x20,0x00
     .iidt:          db 'IDT',0x20,0x00
     .ipit:          db 'PIT',0x20,0x00
+    .irtc:          db 'RTC',0x20,0x00
     .cpuvendor:     db 'CPU Vendor:',0x00
     .cpumodel:      db 'CPU Model:',0x00
     .arrow:         db '-->',0x20,0x00
@@ -105,7 +115,7 @@ start:
 ; Usage:
 ; setup <thing>
 ;
-; Notes:
+; Transformations:
 ; msg => msg.i<thing>
 ; routine => ksetup<thing>
 ;
@@ -125,6 +135,7 @@ start:
 ; Gets jumped into by `start`.
 ;
 kmain:
+kprintc `\n`
 
 ; Pave the way for .main.
 .setup:
@@ -132,9 +143,11 @@ kmain:
     setup pic
     setup idt
     setup pit
+    setup rtc
     setup serial
     kinstallirq 0x00, pit
     kinstallirq 0x01, keyboard
+    kinstallirq 0x08, rtc
     sti
 
 ; There we go
@@ -143,10 +156,10 @@ kmain:
     ksendcoms msg.welcome
     kprints msg.welcome
     kprints msg.prompt
-    jmp .end
 
 ; Temporary workaround to keep the kernel alive.
 .end:
+    call textmode.disable_cursor
     jmp .end
 
 ;
