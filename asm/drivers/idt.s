@@ -10,7 +10,7 @@ section .text
 
 ; PHI load routine.
 .load:
-    call %[PHI_DRIVER].set_gates
+    call idt.set_gates
     ret
 
 ; PHI unload routine.

@@ -10,7 +10,7 @@ section .text
 
 ; PHI load routine.
 .load:
-    call %[PHI_DRIVER].remap
+    call pic.remap
     ret
 
 ; PHI unload routine.

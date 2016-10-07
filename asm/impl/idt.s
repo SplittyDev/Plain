@@ -283,19 +283,3 @@ build_isr 44
 build_isr 45
 build_isr 46
 build_isr 47
-
-section .bss
-
-;
-; IDT contents
-;
-idt_data:
-.start:
-    resb 0x4000
-.end:
-
-;
-; IRQ handlers
-;
-irq_handlers:
-    resd 32

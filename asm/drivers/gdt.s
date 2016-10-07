@@ -10,7 +10,7 @@ section .text
 
 ; PHI load routine.
 .load:
-    call %[PHI_DRIVER].setup
+    call gdt.setup
     ret
 
 ; PHI unload routine.

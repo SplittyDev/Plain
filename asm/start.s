@@ -42,6 +42,14 @@ global start
 %include "string.s"
 
 ;
+; Paging.
+;
+; Exports:
+; None.
+;
+PHI_USE paging
+
+;
 ; VGA Textmode Framebuffer.
 ;
 ; Exports:
@@ -235,10 +243,10 @@ start:
 ; Gets jumped into by `start`.
 ;
 kmain:
-kprintc `\n`
 
 ; Pave the way for .main.
 .setup:
+    PHI_LOAD paging
     PHI_LOAD gdt
     PHI_LOAD pic
     PHI_LOAD idt
@@ -255,7 +263,6 @@ kprintc `\n`
     call .print_cpu_info
     ksendcoms msg.welcome
     kprints msg.welcome
-    kprinti 31
 
 ; Temporary workaround to keep the kernel alive.
 .end:
@@ -283,11 +290,47 @@ kprintc `\n`
     call textmode.println
     ret
 
-section .bss
+section .bss align=4096
+
+; Page tables
+page_tables:
+
+; P4 table.
+.p4:
+    resb 4096
+
+; P3 table.
+.p3:
+    resb 4096
 
 ; Bootstrap stack
-align 4
 stack:
 .bottom:
     resb 4096
 .top:
+
+;
+; IDT contents
+;
+idt_data:
+.start:
+    resb 4096
+.end:
+
+;
+; IRQ handlers
+;
+irq_handlers:
+    resd 32
+
+;
+; Buffer to store the result of __itoa in.
+;
+; Reserved:
+; 0x00-0x01 sign
+; 0x01-0x23 digits (2**32-1 in base 2 has 34 digits)
+; 0x23-0x24 NUL
+;
+align 4
+__itoabuf32:
+    resb 36

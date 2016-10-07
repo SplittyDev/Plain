@@ -1,7 +1,7 @@
 ENTRY(start)
 
 SECTIONS {
-  . = 0xC0100000;
+  . = 0xC0010000;
 
   .text ALIGN(0x1000) : AT(ADDR(.text)-0xC0000000) {
     KEEP(*(.multiboot))

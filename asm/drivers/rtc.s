@@ -10,7 +10,7 @@ section .text
 
 ; PHI load routine.
 .load:
-    call %[PHI_DRIVER].enable_interrupts
+    call rtc.enable_interrupts
     ret
 
 ; PHI unload routine.

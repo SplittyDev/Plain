@@ -38,9 +38,3 @@
 %macro PHI_UNLOAD 1
     call PHI_%[%1].unload
 %endmacro
-
-section .bss
-align 8
-phi_stack:
-    resb 8
-.top:
