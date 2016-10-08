@@ -2,6 +2,7 @@ section .rodata
 
 ;
 ; Convenience wrapper for __itoa.
+; Assumes an unsigned integer as input.
 ; Registers are preserved.
 ;
 ; Usage:
@@ -13,10 +14,39 @@ section .rodata
     push eax
     push ebx
     push ecx
+    push edx
     mov dword eax, %1
     mov dword ecx, %2
     mov dword ebx, __itoabuf32
+    xor edx, edx
     call __itoa
+    pop edx
+    pop ecx
+    pop ecx
+    pop eax
+%endmacro
+
+;
+; Convenience wrapper for __itoa.
+; Assumes a signed integer as input.
+; Registers are preserved.
+;
+; Usage:
+; kitoa <value> [, base]
+;
+; Produces a null-terminated string in __itoabuf32.
+;
+%macro kitoas 1-2 10
+    push eax
+    push ebx
+    push ecx
+    push edx
+    mov dword eax, %1
+    mov dword ecx, %2
+    mov dword ebx, __itoabuf32
+    mov edx, 1
+    call __itoa
+    pop edx
     pop ecx
     pop ecx
     pop eax
@@ -40,6 +70,7 @@ section .text
 ; EAX: Source integer
 ; EBX: Target address
 ; ECX: Base
+; EDX: Sign extend
 ;
 ; Internal register layout:
 ; start:
@@ -50,6 +81,7 @@ section .text
 ; EAX: Source integer
 ; EBX: Target address (original)
 ; ECX: Target address (active)
+; EDX: Sign extend (temporary)
 ; divrem:
 ; EAX: Source integer
 ; ECX: Target address (active)
@@ -68,6 +100,11 @@ __itoa:
     mov edx, ecx
     mov ecx, ebx
 .checknegative:
+    push edx
+    mov dword edx, [esp + 32]
+    test edx, edx
+    pop edx
+    jz .divrem
     test eax, eax
     jns .divrem
     mov byte [ecx], 0x2D
