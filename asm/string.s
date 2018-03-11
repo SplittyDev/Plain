@@ -22,7 +22,7 @@ section .rodata
     call __itoa
     pop edx
     pop ecx
-    pop ecx
+    pop ebx
     pop eax
 %endmacro
 
@@ -48,7 +48,7 @@ section .rodata
     call __itoa
     pop edx
     pop ecx
-    pop ecx
+    pop ebx
     pop eax
 %endmacro
 
